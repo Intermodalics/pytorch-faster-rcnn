@@ -51,12 +51,6 @@ class learnit_db(imdb):
             'Path does not exist: {}'.format(image_path)
         return image_path
 
-    # def _load_image_set_index(self):
-    #     filename = os.path.join(self._data_path, '0_with_boxes.npz')
-    #     data = np.load(filename)
-    #     boxes = data['boxes']
-    #     return list(range(len(boxes)))
-
     def _load_image_set_index(self):
         image_set_file = os.path.join(self._data_path, 'sets',
                                       self._image_set + '.txt')
@@ -96,65 +90,41 @@ class learnit_db(imdb):
                 'flipped': False,
                 'seg_areas': seg_areas}
 
-    # def _load_learnit_bounding_boxes(self):
-    #     bounding_boxes = []
-    #     filename = os.path.join(self._data_path, '0_with_boxes.npz')
-    #     data = np.load(filename)
-    #     data_boxes = data['boxes']
-    #
-    #     for index in self._image_index:
-    #         boxes = data_boxes[index]
-    #         num_objs = len(boxes)
-    #         # All boxes have class 1
-    #         gt_classes = np.ones((num_objs), dtype=np.int32)
-    #         boxes_array = np.zeros((num_objs, 4), dtype=np.int32)
-    #         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
-    #         seg_areas = np.zeros((num_objs), dtype=np.float32)
-    #         for i in range(num_objs):
-    #             boxes_array[i, :] = [boxes[i][0], boxes[i][2], boxes[i][1], boxes[i][3]]
-    #             overlaps[i, 1] = 1.0
-    #             seg_areas[i] = 0
-    #         overlaps = scipy.sparse.csr_matrix(overlaps)
-    #         bounding_boxes.append({'boxes': boxes_array, 'gt_classes': gt_classes,
-    #                                'gt_overlaps': overlaps,'seg_areas': seg_areas,
-    #                                'flipped': False, })
-    #     return bounding_boxes
-
-    # def _do_python_eval(self, output_dir='output'):
-    #     annopath = os.path.join(self._devkit_path, 'VOC' + self._year, 'Annotations', '{:s}.xml')
-    #     imagesetfile = os.path.join(self._devkit_path, 'VOC' + self._year, 'ImageSets', 'Main', self._image_set + '.txt')
-    #     cachedir = os.path.join(self._devkit_path, 'annotations_cache')
-    #     aps = []
-    #     # The PASCAL VOC metric changed in 2010
-    #     use_07_metric = True
-    #     print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
-    #     if not os.path.isdir(output_dir):
-    #         os.mkdir(output_dir)
-    #     for i, cls in enumerate(self._classes):
-    #         if cls == '__background__':
-    #             continue
-    #         filename = self._get_voc_results_file_template().format(cls)
-    #         rec, prec, ap = learnit_db_eval(
-    #             filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
-    #             use_07_metric=use_07_metric, use_diff=self.config['use_diff'])
-    #         aps += [ap]
-    #         print(('AP for {} = {:.4f}'.format(cls, ap)))
-    #         with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
-    #             pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
-    #     print(('Mean AP = {:.4f}'.format(np.mean(aps))))
-    #     print('~~~~~~~~')
-    #     print('Results:')
-    #     for ap in aps:
-    #         print(('{:.3f}'.format(ap)))
-    #     print(('{:.3f}'.format(np.mean(aps))))
-    #     print('~~~~~~~~')
-    #     print('')
-    #     print('--------------------------------------------------------------')
-    #     print('Results computed with the **unofficial** Python eval code.')
-    #     print('Results should be very close to the official MATLAB eval code.')
-    #     print('Recompute with `./tools/reval.py --matlab ...` for your paper.')
-    #     print('-- Thanks, The Management')
-    #     print('--------------------------------------------------------------')
+    def _do_python_eval(self, output_dir='output'):
+        annopath = os.path.join(self._data_path, 'annotations', '{:s}.txt')
+        imagesetfile = os.path.join(self._data_path, 'sets', self._image_set + '.txt')
+        cachedir = os.path.join(self._data_path, 'annotations_cache')
+        aps = []
+        # The PASCAL VOC metric changed in 2010
+        use_07_metric = False
+        print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
+        if not os.path.isdir(output_dir):
+            os.mkdir(output_dir)
+        for i, cls in enumerate(self._classes):
+            if cls == '__background__':
+                continue
+            filename = self._get_voc_results_file_template().format(cls)
+            rec, prec, ap = learnit_db_eval(
+                filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
+                use_07_metric=use_07_metric)
+            aps += [ap]
+            print(('AP for {} = {:.4f}'.format(cls, ap)))
+            with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
+                pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+        print(('Mean AP = {:.4f}'.format(np.mean(aps))))
+        print('~~~~~~~~')
+        print('Results:')
+        for ap in aps:
+            print(('{:.3f}'.format(ap)))
+        print(('{:.3f}'.format(np.mean(aps))))
+        print('~~~~~~~~')
+        print('')
+        print('--------------------------------------------------------------')
+        print('Results computed with the **unofficial** Python eval code.')
+        print('Results should be very close to the official MATLAB eval code.')
+        print('Recompute with `./tools/reval.py --matlab ...` for your paper.')
+        print('-- Thanks, The Management')
+        print('--------------------------------------------------------------')
 
     def _get_voc_results_file_template(self):
         # VOCdevkit/results/VOC2007/Main/<comp_id>_det_test_aeroplane.txt
@@ -182,4 +152,4 @@ class learnit_db(imdb):
 
     def evaluate_detections(self, all_boxes, output_dir):
         self._write_voc_results_file(all_boxes)
-        # self._do_python_eval(output_dir)
+        self._do_python_eval(output_dir)

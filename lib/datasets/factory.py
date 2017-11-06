@@ -47,7 +47,8 @@ name = 'learnit_db_val'
 __sets[name] = (lambda: learnit_db("val"))
 name = 'learnit_db_test'
 __sets[name] = (lambda: learnit_db("test"))
-
+name = 'learnit_db_test_real'
+__sets[name] = (lambda: learnit_db("test_real"))
 
 def get_imdb(name):
   """Get an imdb (image database) by name."""
