@@ -152,6 +152,7 @@ def test_net(net, imdb, weights_filename, max_per_image=100, thresh=0.):
   _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
   for i in range(num_images):
+  # for i in range(10):
     im = cv2.imread(imdb.image_path_at(i))
 
     _t['im_detect'].tic()

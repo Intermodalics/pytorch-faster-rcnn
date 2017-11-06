@@ -13,6 +13,7 @@ from __future__ import print_function
 __sets = {}
 from datasets.pascal_voc import pascal_voc
 from datasets.coco import coco
+from datasets.learnit_db import learnit_db
 
 import numpy as np
 
@@ -38,6 +39,14 @@ for year in ['2015']:
   for split in ['test', 'test-dev']:
     name = 'coco_{}_{}'.format(year, split)
     __sets[name] = (lambda split=split, year=year: coco(split, year))
+
+# Learnit
+name = 'learnit_db_train'
+__sets[name] = (lambda: learnit_db("train"))
+name = 'learnit_db_val'
+__sets[name] = (lambda: learnit_db("val"))
+name = 'learnit_db_test'
+__sets[name] = (lambda: learnit_db("test"))
 
 
 def get_imdb(name):
