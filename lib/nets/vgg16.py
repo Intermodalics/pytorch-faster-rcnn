@@ -26,8 +26,8 @@ class vgg16(Network):
     self._fc7_channels = 4096
 
   def _init_head_tail(self):
-    # self.vgg = models.vgg16_one_channel()
-    self.vgg = models.vgg16()
+    self.vgg = models.vgg16_one_channel()
+    # self.vgg = models.vgg16()
     # Remove fc8
     self.vgg.classifier = nn.Sequential(*list(self.vgg.classifier._modules.values())[:-1])
 

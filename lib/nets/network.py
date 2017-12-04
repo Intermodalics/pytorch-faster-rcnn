@@ -51,6 +51,7 @@ class Network(nn.Module):
     # add back mean
     image = self._image_gt_summaries['image'] + cfg.PIXEL_MEANS
     image = imresize(image[0], self._im_info[:2] / self._im_info[2])
+    # image = imresize(image[0][:, :, 0], self._im_info[:2] / self._im_info[2])
     # BGR to RGB (opencv uses BGR)
     self._gt_image = image[np.newaxis, :,:,::-1].copy(order='C')
 
@@ -386,7 +387,6 @@ class Network(nn.Module):
     self._image_gt_summaries['im_info'] = im_info
 
     self._image = Variable(torch.from_numpy(image.transpose([0,3,1,2])).cuda(), volatile=mode == 'TEST')
-    # self._image = Variable(torch.from_numpy(image.transpose([0,3,1,2])).cuda(), volatile=mode == 'TEST')
     self._im_info = im_info # No need to change; actually it can be an list
     self._gt_boxes = Variable(torch.from_numpy(gt_boxes).cuda()) if gt_boxes is not None else None
 
