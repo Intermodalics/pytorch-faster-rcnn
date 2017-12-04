@@ -50,9 +50,10 @@ class Network(nn.Module):
   def _add_gt_image(self):
     # add back mean
     image = self._image_gt_summaries['image'] + cfg.PIXEL_MEANS
-    image = imresize(image[0], self._im_info[:2] / self._im_info[2])
-    # image = imresize(image[0][:, :, 0], self._im_info[:2] / self._im_info[2])
+    # image = imresize(image[0], self._im_info[:2] / self._im_info[2])
+    image = imresize(image[0][:, :, 0], self._im_info[:2] / self._im_info[2])
     # BGR to RGB (opencv uses BGR)
+    image = np.repeat(image[:, :, np.newaxis], 3, axis=2)
     self._gt_image = image[np.newaxis, :,:,::-1].copy(order='C')
 
   def _add_gt_image_summary(self):
