@@ -103,8 +103,14 @@ class imdb(object):
     raise NotImplementedError
 
   def _get_widths(self):
-    return [PIL.Image.open(self.image_path_at(i)).size[0]
-            for i in range(self.num_images)]
+    # return [PIL.Image.open(self.image_path_at(i)).size[0]
+    #         for i in range(self.num_images)]
+
+    # TODO
+    # Hardcoded width, this is really bad! But reading npz file file['depth'].size
+    # each time is really slow. We would need to add width/height
+    # at top level in npz file.
+    return [640] * self.num_images
 
   def append_flipped_images(self):
     num_images = self.num_images

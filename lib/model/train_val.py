@@ -163,7 +163,8 @@ class SolverWrapper(object):
     np_paths = []
     ss_paths = []
     # Fresh train directly from ImageNet weights
-    print('Loading initial model weights from {:s}'.format(self.pretrained_model))
+    # print('Loading initial model weights from {:s}'.format(self.pretrained_model))
+    print('NOT loading initial model weights because we train on depth (and only have one input channel).')
     # self.net.load_pretrained_cnn(torch.load(self.pretrained_model))
     print('Loaded.')
     # Need to fix the variables before loading, so that the RGB weights are changed to BGR

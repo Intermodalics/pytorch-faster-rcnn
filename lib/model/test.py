@@ -34,8 +34,11 @@ def _get_image_blob(im):
     im_scale_factors (list): list of image scales (relative to im) used
       in the image pyramid
   """
-  im_orig = im.astype(np.float32, copy=True)
-  im_orig -= cfg.PIXEL_MEANS
+  # im_orig = im.astype(np.float32, copy=True)
+  # im_orig -= cfg.PIXEL_MEANS
+
+  # Scale/translate depth values to [-1, 1]
+  im_orig = (((im - im.min()) * 2) / (im.max() - im.min())) - 1
 
   im_shape = im_orig.shape
   im_size_min = np.min(im_shape[0:2])
@@ -153,39 +156,19 @@ def test_net(net, imdb, weights_filename, max_per_image=100, thresh=0.):
 
   for i in range(num_images):
   # for i in range(10):
-    im = cv2.imread(imdb.image_path_at(i))
+  #   im = cv2.imread(imdb.image_path_at(i))
+    data = np.load(imdb.image_path_at(i))
+    im = data['depth']
 
-    _t['im_detect'].tic()
-    scores, boxes = im_detect(net, im)
-    _t['im_detect'].toc()
+    # Normalize
+    im = (((im - np.nanmin(im)) * 2) / (np.nanmax(im) - np.nanmin(im))) - 1
 
-    _t['misc'].tic()
+    # Do detection.
+    boxes, det_time = detect(net, im, imdb.num_classes)
+    all_boxes[0][i] = boxes[0]
+    all_boxes[1][i] = boxes[1]
 
-    # skip j = 0, because it's the background class
-    for j in range(1, imdb.num_classes):
-      inds = np.where(scores[:, j] > thresh)[0]
-      cls_scores = scores[inds, j]
-      cls_boxes = boxes[inds, j*4:(j+1)*4]
-      cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-        .astype(np.float32, copy=False)
-      keep = nms(torch.from_numpy(cls_dets), cfg.TEST.NMS).numpy() if cls_dets.size > 0 else []
-      cls_dets = cls_dets[keep, :]
-      all_boxes[j][i] = cls_dets
-
-    # Limit to max_per_image detections *over all classes*
-    if max_per_image > 0:
-      image_scores = np.hstack([all_boxes[j][i][:, -1]
-                    for j in range(1, imdb.num_classes)])
-      if len(image_scores) > max_per_image:
-        image_thresh = np.sort(image_scores)[-max_per_image]
-        for j in range(1, imdb.num_classes):
-          keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
-          all_boxes[j][i] = all_boxes[j][i][keep, :]
-    _t['misc'].toc()
-
-    print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
-        .format(i + 1, num_images, _t['im_detect'].average_time(),
-            _t['misc'].average_time()))
+    print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1, num_images, det_time))
 
   det_file = os.path.join(output_dir, 'detections.pkl')
   with open(det_file, 'wb') as f:
@@ -193,4 +176,38 @@ def test_net(net, imdb, weights_filename, max_per_image=100, thresh=0.):
 
   print('Evaluating detections')
   imdb.evaluate_detections(all_boxes, output_dir)
+
+def detect(net, im, num_classes, max_per_image=100, thresh=0.):
+  timer_detect = Timer()
+  timer_detect.tic()
+  scores, boxes = im_detect(net, im)
+  timer_detect.toc()
+  det_time = timer_detect.average_time()
+
+  boxes_filtered = [[] for _ in range(num_classes)]
+
+  # Non-maximum suppression
+  # skip j = 0, because it's the background class
+  for j in range(1, num_classes):
+    inds = np.where(scores[:, j] > thresh)[0]
+    cls_scores = scores[inds, j]
+    cls_boxes = boxes[inds, j*4:(j+1)*4]
+    cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+      .astype(np.float32, copy=False)
+    keep = nms(torch.from_numpy(cls_dets), cfg.TEST.NMS).numpy() if cls_dets.size > 0 else []
+    cls_dets = cls_dets[keep, :]
+    boxes_filtered[j] = cls_dets
+
+  # Limit to max_per_image detections *over all classes*
+  if max_per_image > 0:
+    image_scores = np.hstack([boxes_filtered[j][:, -1]
+                  for j in range(1, num_classes)])
+    if len(image_scores) > max_per_image:
+      image_thresh = np.sort(image_scores)[-max_per_image]
+      for j in range(1, num_classes):
+        keep = np.where(boxes_filtered[j][:, -1] >= image_thresh)[0]
+        boxes_filtered[j] = boxes_filtered[j][keep, :]
+
+  return boxes_filtered, det_time
+
 

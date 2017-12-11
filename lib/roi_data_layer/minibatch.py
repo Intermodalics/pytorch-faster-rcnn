@@ -59,12 +59,18 @@ def _get_image_blob(roidb, scale_inds):
   processed_ims = []
   im_scales = []
   for i in range(num_images):
-    # im = cv2.imread(roidb[i]['image'])
-    im = cv2.imread(roidb[i]['image'], cv2.IMREAD_GRAYSCALE)
+    # im_tmp = cv2.imread(roidb[i]['image'], cv2.IMREAD_GRAYSCALE)
+
+    # Read raw values for depth, not a jpg image which only contains 8bit of information! Really bad to read
+    # jpgs for depth.
+    data = np.load(roidb[i]['image'])
+    im = data['depth']
+
     if roidb[i]['flipped']:
       # im = im[:, ::-1, :]
       im = im[:, ::-1]
     target_size = cfg.TRAIN.SCALES[scale_inds[i]]
+
     im, im_scale = prep_im_for_blob(im, cfg.PIXEL_MEANS, target_size,
                     cfg.TRAIN.MAX_SIZE)
     im_scales.append(im_scale)

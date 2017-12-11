@@ -18,7 +18,10 @@ class learnit_db(imdb):
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
         self._roidb_handler = self.gt_roidb
-        self._image_ext = '.jpg'
+        # self._image_ext = '.jpg'
+        self._image_ext = '.npz'
+        self._npz_path = os.path.join(self._data_path, 'npz/real/case2/known/')
+        # self._npz_path = os.path.join(self._data_path, 'npz/case3/')
 
     def gt_roidb(self):
         # Return bounding boxes here
@@ -45,7 +48,9 @@ class learnit_db(imdb):
         return self.image_path_from_index(self._image_index[i])
 
     def image_path_from_index(self, index):
-        image_path = os.path.join(self._data_path, 'jpg',
+        # image_path = os.path.join(self._data_path, 'jpg',
+        #                           index + self._image_ext)
+        image_path = os.path.join(self._npz_path,
                                   index + self._image_ext)
         assert os.path.exists(image_path), \
             'Path does not exist: {}'.format(image_path)
@@ -61,14 +66,19 @@ class learnit_db(imdb):
         return image_index
 
     def _load_learnit_annotation(self, index):
-        filename = os.path.join(self._data_path, 'annotations', index + '.txt')
-        # Get bounding boxes
-        boxes = []
-        with open(filename) as f:
-            line = f.readline()
-            while line:
-                boxes.append(line.split())
-                line = f.readline()
+        # filename = os.path.join(self._data_path, 'annotations', index + '.txt')
+        image_path = os.path.join(self._npz_path,
+                                  index + self._image_ext)
+        data = np.load(image_path)
+        boxes = data['box']
+
+        # # Get bounding boxes
+        # boxes = []
+        # with open(filename) as f:
+        #     line = f.readline()
+        #     while line:
+        #         boxes.append(line.split())
+        #         line = f.readline()
 
         num_objs = len(boxes)
 
@@ -78,7 +88,9 @@ class learnit_db(imdb):
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
         seg_areas = np.zeros((num_objs), dtype=np.float32)
         for i in range(num_objs):
-            boxes_array[i, :] = np.array([boxes[i][1], boxes[i][2], boxes[i][3], boxes[i][4]])
+            # boxes_array[i, :] = np.array([boxes[i][1], boxes[i][2], boxes[i][3], boxes[i][4]])
+            box = boxes[i][0]
+            boxes_array[i, :] = np.array([box[2], box[3], box[4], box[5]])
             overlaps[i, 1] = 1.0
             seg_areas[i] = 0
 
@@ -105,7 +117,7 @@ class learnit_db(imdb):
                 continue
             filename = self._get_voc_results_file_template().format(cls)
             rec, prec, ap = learnit_db_eval(
-                filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
+                filename, self._npz_path, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
                 use_07_metric=use_07_metric)
             aps += [ap]
             print(('AP for {} = {:.4f}'.format(cls, ap)))
